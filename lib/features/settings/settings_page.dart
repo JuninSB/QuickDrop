@@ -73,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: widget.settings.quality,
+                initialValue: widget.settings.quality,
                 decoration: const InputDecoration(labelText: 'Download quality'),
                 items: const [
                   DropdownMenuItem(value: 'best', child: Text('Best available')),
