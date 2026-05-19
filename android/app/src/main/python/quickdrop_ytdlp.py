@@ -35,7 +35,6 @@ def download(url, fmt, output_template, work_dir, callback):
         "outtmpl": output_template,
         "noplaylist": True,
         "restrictfilenames": True,
-        "merge_output_format": "mp4",
         "progress_hooks": [hook],
         "quiet": True,
         "no_warnings": False,

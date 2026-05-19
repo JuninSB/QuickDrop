@@ -40,10 +40,10 @@ class DownloadForegroundService : Service() {
         val workDir = File(cacheDir, "downloads").apply { mkdirs() }
         val outputTemplate = File(workDir, "%(title).180B-%(id)s.%(ext)s").absolutePath
         val format = when (quality) {
-            "720p" -> "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
-            "480p" -> "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
+            "720p" -> "best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best"
+            "480p" -> "best[height<=480][ext=mp4]/best[height<=480]/best[ext=mp4]/best"
             "audio" -> "bestaudio/best"
-            else -> "bv*+ba/best"
+            else -> "best[ext=mp4]/best"
         }
 
         var lastError = ""
