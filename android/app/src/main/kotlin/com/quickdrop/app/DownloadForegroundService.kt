@@ -165,8 +165,8 @@ class DownloadForegroundService : Service() {
     }
 }
 
-class ProgressCallback(private val onUpdate: (Int, String) -> Unit) {
-    fun onProgress(progress: Int, text: String) {
+class ProgressCallback(private val onUpdate: (Int, String) -> Unit) : YtDlpProgress {
+    override fun onProgress(progress: Int, text: String) {
         onUpdate(progress.coerceIn(0, 100), text)
     }
 }
