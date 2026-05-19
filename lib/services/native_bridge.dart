@@ -25,4 +25,9 @@ class NativeBridge {
         'url': url,
         'quality': quality,
       });
+
+  Future<Map<String, dynamic>> diagnostics() async {
+    final result = await _methods.invokeMapMethod<String, dynamic>('diagnostics');
+    return result ?? <String, dynamic>{};
+  }
 }

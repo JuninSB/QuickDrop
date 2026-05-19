@@ -39,7 +39,13 @@ class DownloadForegroundService : Service() {
         val outputTemplate = File(workDir, "%(title).180B-%(id)s.%(ext)s").absolutePath
         val ytdlp = prepareYtDlp()
         if (ytdlp == null) {
-            emit(id, url, "failed", 0, error = "Missing assets/bin/yt-dlp Android executable")
+            emit(
+                id,
+                url,
+                "failed",
+                0,
+                error = "Missing assets/bin/yt-dlp. Put an Android-compatible executable at assets/bin/yt-dlp before building the APK."
+            )
             return
         }
         val format = when (quality) {

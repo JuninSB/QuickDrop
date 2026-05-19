@@ -5,6 +5,7 @@ class SettingsStore extends ChangeNotifier {
   bool autoClipboard = true;
   bool autoOverlay = true;
   bool darkMode = true;
+  bool devMode = false;
   String quality = 'best';
   String saveLocation = 'Downloads/QuickDrop';
 
@@ -13,6 +14,7 @@ class SettingsStore extends ChangeNotifier {
     autoClipboard = prefs.getBool('autoClipboard') ?? true;
     autoOverlay = prefs.getBool('autoOverlay') ?? true;
     darkMode = prefs.getBool('darkMode') ?? true;
+    devMode = prefs.getBool('devMode') ?? false;
     quality = prefs.getString('quality') ?? 'best';
     saveLocation = prefs.getString('saveLocation') ?? 'Downloads/QuickDrop';
   }
@@ -35,6 +37,13 @@ class SettingsStore extends ChangeNotifier {
     darkMode = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('darkMode', value);
+    notifyListeners();
+  }
+
+  Future<void> setDevMode(bool value) async {
+    devMode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('devMode', value);
     notifyListeners();
   }
 

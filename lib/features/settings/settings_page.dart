@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quickdrop/services/download_service.dart';
 import 'package:quickdrop/services/native_bridge.dart';
 import 'package:quickdrop/services/settings_store.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, required this.settings});
+  const SettingsPage({super.key, required this.settings, required this.downloads});
 
   final SettingsStore settings;
+  final DownloadService downloads;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -14,6 +17,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final native = NativeBridge();
   bool overlayGranted = false;
+  Map<String, dynamic> diagnostics = const {};
 
   @override
   void initState() {
@@ -23,6 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> refresh() async {
     overlayGranted = await native.isOverlayGranted();
+    diagnostics = await native.diagnostics();
     if (mounted) setState(() {});
   }
 
@@ -91,10 +96,59 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: const Text('Save location'),
                 subtitle: Text(widget.settings.saveLocation),
               ),
+              if (widget.settings.devMode) ...[
+                const SizedBox(height: 20),
+                Text('Developer', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.bug_report_outlined),
+                  title: const Text('yt-dlp status'),
+                  subtitle: Text(_diagnosticText()),
+                  trailing: IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: refresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: copyDebugLogs,
+                  icon: const Icon(Icons.copy_all),
+                  label: const Text('Copy debug logs'),
+                ),
+                const SizedBox(height: 8),
+                ...widget.downloads.logs.take(10).map(
+                      (line) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(line, style: Theme.of(context).textTheme.bodySmall),
+                      ),
+                    ),
+              ],
             ],
           ),
         );
       },
+    );
+  }
+
+  String _diagnosticText() {
+    final existsInAssets = diagnostics['assetYtDlpExists'] == true;
+    final extracted = diagnostics['extractedYtDlpExists'] == true;
+    final extractedPath = diagnostics['extractedYtDlpPath'] ?? '-';
+    final packageName = diagnostics['packageName'] ?? '-';
+    return 'asset=$existsInAssets extracted=$extracted package=$packageName path=$extractedPath';
+  }
+
+  Future<void> copyDebugLogs() async {
+    await refresh();
+    final text = [
+      'QuickDrop debug ${DateTime.now().toIso8601String()}',
+      'diagnostics=$diagnostics',
+      ...widget.downloads.logs,
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Debug logs copied')),
     );
   }
 }

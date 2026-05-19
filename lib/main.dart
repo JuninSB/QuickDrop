@@ -61,9 +61,10 @@ class _QuickDropAppState extends State<QuickDropApp> {
                   initialUrl: widget.initialUrl,
                   downloads: widget.downloads,
                   settings: widget.settings,
+                  onDevUnlocked: () => widget.settings.setDevMode(true),
                 ),
                 DownloadsPage(downloads: widget.downloads),
-                SettingsPage(settings: widget.settings),
+                SettingsPage(settings: widget.settings, downloads: widget.downloads),
               ],
             ),
             bottomNavigationBar: NavigationBar(

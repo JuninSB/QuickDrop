@@ -58,6 +58,7 @@ class MainActivity : FlutterActivity() {
                     DownloadForegroundService.start(this, url, quality)
                     result.success(null)
                 }
+                "diagnostics" -> result.success(diagnostics())
                 else -> result.notImplemented()
             }
         }
@@ -69,5 +70,24 @@ class MainActivity : FlutterActivity() {
         val manager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = manager.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()
         return UrlSupport.extract(text)
+    }
+
+    private fun diagnostics(): Map<String, Any?> {
+        val extracted = java.io.File(filesDir, "bin/yt-dlp")
+        val assetExists = try {
+            assets.open("bin/yt-dlp").close()
+            true
+        } catch (_: Exception) {
+            false
+        }
+        return mapOf(
+            "packageName" to packageName,
+            "assetYtDlpExists" to assetExists,
+            "extractedYtDlpExists" to extracted.exists(),
+            "extractedYtDlpPath" to extracted.absolutePath,
+            "extractedYtDlpSize" to if (extracted.exists()) extracted.length() else 0L,
+            "androidSdk" to Build.VERSION.SDK_INT,
+            "overlayGranted" to Settings.canDrawOverlays(this)
+        )
     }
 }

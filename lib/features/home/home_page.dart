@@ -9,11 +9,13 @@ class HomePage extends StatefulWidget {
     super.key,
     required this.downloads,
     required this.settings,
+    required this.onDevUnlocked,
     this.initialUrl,
   });
 
   final DownloadService downloads;
   final SettingsStore settings;
+  final VoidCallback onDevUnlocked;
   final String? initialUrl;
 
   @override
@@ -23,6 +25,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final TextEditingController controller = TextEditingController(text: widget.initialUrl ?? '');
   bool busy = false;
+  int titleTaps = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +35,19 @@ class _HomePageState extends State<HomePage> {
         return CustomScrollView(
           slivers: [
             SliverAppBar(
-              title: const Text('QuickDrop'),
+              title: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  titleTaps += 1;
+                  if (titleTaps >= 5) {
+                    widget.onDevUnlocked();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Developer tools unlocked')),
+                    );
+                  }
+                },
+                child: const Text('QuickDrop'),
+              ),
               actions: [
                 IconButton(
                   tooltip: 'Paste',
