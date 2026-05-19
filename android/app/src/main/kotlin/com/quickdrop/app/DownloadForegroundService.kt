@@ -10,6 +10,8 @@ import android.os.Environment
 import android.os.IBinder
 import android.provider.MediaStore
 import androidx.core.app.NotificationManagerCompat
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import java.io.File
 import java.util.UUID
 import kotlin.concurrent.thread
@@ -37,17 +39,6 @@ class DownloadForegroundService : Service() {
         val id = UUID.randomUUID().toString()
         val workDir = File(cacheDir, "downloads").apply { mkdirs() }
         val outputTemplate = File(workDir, "%(title).180B-%(id)s.%(ext)s").absolutePath
-        val ytdlp = prepareYtDlp()
-        if (ytdlp == null) {
-            emit(
-                id,
-                url,
-                "failed",
-                0,
-                error = "Missing assets/bin/yt-dlp. Put an Android-compatible executable at assets/bin/yt-dlp before building the APK."
-            )
-            return
-        }
         val format = when (quality) {
             "720p" -> "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
             "480p" -> "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
@@ -58,32 +49,10 @@ class DownloadForegroundService : Service() {
         var lastError = ""
         repeat(3) { attempt ->
             emit(id, url, if (attempt == 0) "running" else "retrying", 0)
-            val args = listOf(
-                ytdlp.absolutePath,
-                "--newline",
-                "--no-playlist",
-                "--restrict-filenames",
-                "--merge-output-format", "mp4",
-                "-f", format,
-                "-o", outputTemplate,
-                url
-            )
-            val process = ProcessBuilder(args)
-                .redirectErrorStream(true)
-                .directory(workDir)
-                .start()
-            process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    parseProgress(line)?.let { progress ->
-                        notifyProgress(id, url, progress, "Downloading $progress%")
-                    }
-                    if (line.contains("ERROR", ignoreCase = true)) lastError = line
-                }
-            }
-            val exit = process.waitFor()
-            if (exit == 0) {
-                val file = workDir.listFiles()?.filter { it.isFile }?.maxByOrNull { it.lastModified() }
-                if (file != null) {
+            try {
+                val outputPath = runPythonYtDlp(id, url, format, outputTemplate, workDir)
+                val file = File(outputPath)
+                if (file.exists()) {
                     val saved = saveToMediaStore(file)
                     emit(id, url, "completed", 100, saved.toString())
                     try {
@@ -97,11 +66,30 @@ class DownloadForegroundService : Service() {
                     return
                 }
                 lastError = "Download finished but output file was not found"
-            } else if (lastError.isBlank()) {
-                lastError = "yt-dlp exited with code $exit"
+            } catch (error: Exception) {
+                lastError = error.message ?: error.toString()
             }
         }
         emit(id, url, "failed", 0, error = lastError.ifBlank { "Download failed" })
+    }
+
+    private fun runPythonYtDlp(
+        id: String,
+        url: String,
+        format: String,
+        outputTemplate: String,
+        workDir: File
+    ): String {
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(this))
+        }
+        val callback = ProgressCallback { progress, text ->
+            notifyProgress(id, url, progress, text)
+        }
+        return Python.getInstance()
+            .getModule("quickdrop_ytdlp")
+            .callAttr("download", url, format, outputTemplate, workDir.absolutePath, callback)
+            .toString()
     }
 
     private fun notifyProgress(id: String, url: String, progress: Int, text: String) {
@@ -111,26 +99,6 @@ class DownloadForegroundService : Service() {
             // Keep broadcasting progress to Flutter even if notifications are blocked.
         }
         emit(id, url, "running", progress)
-    }
-
-    private fun parseProgress(line: String): Int? {
-        val match = Regex("""\s(\d{1,3}(?:\.\d+)?)%""").find(line) ?: return null
-        return match.groupValues[1].toDoubleOrNull()?.toInt()?.coerceIn(0, 100)
-    }
-
-    private fun prepareYtDlp(): File? {
-        val target = File(filesDir, "bin/yt-dlp")
-        if (target.exists() && target.length() > 0) return target
-        target.parentFile?.mkdirs()
-        return try {
-            assets.open("bin/yt-dlp").use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
-            }
-            target.setExecutable(true, true)
-            target
-        } catch (_: Exception) {
-            null
-        }
     }
 
     private fun saveToMediaStore(source: File): Uri? {
@@ -194,5 +162,11 @@ class DownloadForegroundService : Service() {
                     .putExtra(EXTRA_QUALITY, quality)
             )
         }
+    }
+}
+
+class ProgressCallback(private val onUpdate: (Int, String) -> Unit) {
+    fun onProgress(progress: Int, text: String) {
+        onUpdate(progress.coerceIn(0, 100), text)
     }
 }

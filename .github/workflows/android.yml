@@ -28,6 +28,11 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Setup Python for Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:

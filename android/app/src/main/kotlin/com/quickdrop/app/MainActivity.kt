@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -80,9 +82,19 @@ class MainActivity : FlutterActivity() {
         } catch (_: Exception) {
             false
         }
+        val pythonYtDlpAvailable = try {
+            if (!Python.isStarted()) {
+                Python.start(AndroidPlatform(this))
+            }
+            Python.getInstance().getModule("yt_dlp")
+            true
+        } catch (_: Exception) {
+            false
+        }
         return mapOf(
             "packageName" to packageName,
             "assetYtDlpExists" to assetExists,
+            "pythonYtDlpAvailable" to pythonYtDlpAvailable,
             "extractedYtDlpExists" to extracted.exists(),
             "extractedYtDlpPath" to extracted.absolutePath,
             "extractedYtDlpSize" to if (extracted.exists()) extracted.length() else 0L,

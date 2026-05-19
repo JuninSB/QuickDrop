@@ -132,10 +132,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _diagnosticText() {
     final existsInAssets = diagnostics['assetYtDlpExists'] == true;
+    final pythonYtDlp = diagnostics['pythonYtDlpAvailable'] == true;
     final extracted = diagnostics['extractedYtDlpExists'] == true;
     final extractedPath = diagnostics['extractedYtDlpPath'] ?? '-';
     final packageName = diagnostics['packageName'] ?? '-';
-    return 'asset=$existsInAssets extracted=$extracted package=$packageName path=$extractedPath';
+    return 'pythonYtDlp=$pythonYtDlp asset=$existsInAssets extracted=$extracted package=$packageName path=$extractedPath';
   }
 
   Future<void> copyDebugLogs() async {
